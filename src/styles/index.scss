@@ -1,0 +1,159 @@
+/**
+ * 全局样式
+ */
+
+:root {
+  --primary-color: #409eff;
+  --success-color: #67c23a;
+  --warning-color: #e6a23c;
+  --danger-color: #f56c6c;
+  --info-color: #909399;
+
+  --text-primary: var(--el-text-color-primary);
+  --text-regular: var(--el-text-color-regular);
+  --text-secondary: var(--el-text-color-secondary);
+  --text-placeholder: var(--el-text-color-placeholder);
+
+  --border-base: #dcdfe6;
+  --border-light: #e4e7ed;
+  --border-lighter: #ebeef5;
+  --border-extra-light: #f2f6fc;
+
+  --bg-base: #f5f7fa;
+}
+
+// 暗黑模式
+html.dark {
+  body {
+    color: #e5eaf3;
+    background-color: #141414;
+  }
+
+  .admin-layout .sidebar {
+    background: #1d1e2c !important;
+    border-right: 1px solid #2d2d3a;
+  }
+
+  .admin-layout .sidebar .logo {
+    background: #161622 !important;
+    color: #e5eaf3 !important;
+  }
+
+  .admin-layout .sidebar .el-menu {
+    background: #1d1e2c !important;
+  }
+
+  .admin-layout .sidebar .el-menu .el-menu-item,
+  .admin-layout .sidebar .el-menu .el-sub-menu__title {
+    background: #1d1e2c !important;
+    color: #a0aec0 !important;
+  }
+
+  .admin-layout .sidebar .el-menu .el-menu-item:hover,
+  .admin-layout .sidebar .el-menu .el-sub-menu__title:hover {
+    background: #2a2b3d !important;
+    color: #e5eaf3 !important;
+  }
+
+  .admin-layout .sidebar .el-menu .el-menu-item.is-active {
+    color: #409eff !important;
+    background: #252638 !important;
+  }
+
+  .admin-layout .sidebar .el-sub-menu .el-menu-item {
+    background: #161622 !important;
+  }
+
+  .admin-layout .sidebar .el-sub-menu .el-menu-item:hover {
+    background: #1a1b2e !important;
+  }
+
+  .admin-layout .header {
+    background: #1d1e2c !important;
+    border-bottom: 1px solid #2d2d3a !important;
+    color: #e5eaf3;
+  }
+
+  .admin-layout .main-content {
+    background: #141414 !important;
+  }
+
+  .el-card {
+    background: #1d1e2c;
+    border-color: #2d2d3a;
+  }
+}
+
+// 通用类
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.ml-4 {
+  margin-left: 16px;
+}
+
+.mr-4 {
+  margin-right: 16px;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.mb-4 {
+  margin-bottom: 16px;
+}
+
+// 状态颜色
+.text-success {
+  color: var(--success-color);
+}
+
+.text-warning {
+  color: var(--warning-color);
+}
+
+.text-danger {
+  color: var(--danger-color);
+}
+
+.text-info {
+  color: var(--info-color);
+}
+
+// 页面容器
+.page-container {
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
