@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { QuestionFilled } from '@element-plus/icons-vue'
 import { get, post, put } from '@/utils/request'
+import {
+  downloadTextbookImportTemplate,
+  getTextbookOptions,
+  importTextbooks,
+  type TextbookOption,
+} from '@/api/textbook'
 import { useUserStore } from '@/stores'
 import dayjs from 'dayjs'
 
@@ -36,23 +43,99 @@ const dialog = ref({ visible: false, id: 0 as number | null })
 const form = ref({ textbookId: '', price: '', stock: 0, startTime: '', endTime: '', remark: '', coverImage: '' })
 const formLoading = ref(false)
 const uploadLoading = ref(false)
+const textbookImportLoading = ref(false)
+const templateDownloadLoading = ref(false)
+const textbookSearchLoading = ref(false)
+const textbookOptions = ref<TextbookOption[]>([])
+let textbookSearchRequestId = 0
+let textbookSearchTimer: ReturnType<typeof setTimeout> | undefined
+
+const fetchTextbookOptions = async (title = '') => {
+  const requestId = ++textbookSearchRequestId
+  textbookSearchLoading.value = true
+  try {
+    const res = await getTextbookOptions(title.trim())
+    if (requestId === textbookSearchRequestId) {
+      textbookOptions.value = res.data?.list || []
+    }
+  } catch (e: any) {
+    if (requestId === textbookSearchRequestId) {
+      textbookOptions.value = []
+      ElMessage.error(e?.message || '加载教材失败')
+    }
+  } finally {
+    if (requestId === textbookSearchRequestId) textbookSearchLoading.value = false
+  }
+}
+
+const handleTextbookSearch = (title: string) => {
+  if (textbookSearchTimer) clearTimeout(textbookSearchTimer)
+  textbookSearchTimer = setTimeout(() => fetchTextbookOptions(title), 250)
+}
+
+const handleTextbookImport = async (file: File) => {
+  if (!/\.(xlsx|xls)$/i.test(file.name)) {
+    ElMessage.warning('仅支持 .xlsx / .xls 格式')
+    return false
+  }
+
+  textbookImportLoading.value = true
+  try {
+    const res = await importTextbooks(file)
+    ElMessage.success(res.data || '导入任务已提交，正在后台处理')
+  } catch (e: any) {
+    ElMessage.error(e?.message || '教材导入失败')
+  } finally {
+    textbookImportLoading.value = false
+  }
+  return false
+}
+
+const handleTemplateDownload = async () => {
+  templateDownloadLoading.value = true
+  try {
+    const { blob, fileName } = await downloadTextbookImportTemplate()
+    const objectUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = objectUrl
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(objectUrl)
+    ElMessage.success('导入模板下载成功')
+  } catch (e: any) {
+    ElMessage.error(e?.message || '导入模板下载失败')
+  } finally {
+    templateDownloadLoading.value = false
+  }
+}
 
 const openCreate = () => {
+  if (textbookSearchTimer) clearTimeout(textbookSearchTimer)
   dialog.value = { visible: true, id: null }
   form.value = { textbookId: '', price: '', stock: 0, startTime: '', endTime: '', remark: '', coverImage: '' }
+  textbookOptions.value = []
+  fetchTextbookOptions()
 }
 
 const openEdit = (row: any) => {
+  if (textbookSearchTimer) clearTimeout(textbookSearchTimer)
+  textbookSearchRequestId++
+  textbookSearchLoading.value = false
   dialog.value = { visible: true, id: row.id }
   form.value = {
     textbookId: row.textbookId,
     price: row.price,
     stock: row.stock,
-    startTime: row.startTime ? dayjs(row.startTime).format('YYYY-MM-DDTHH:mm:ss') : '',
-    endTime: row.endTime ? dayjs(row.endTime).format('YYYY-MM-DDTHH:mm:ss') : '',
+    startTime: row.startTime ? dayjs(row.startTime).format('YYYY-MM-DD HH:mm:ss') : '',
+    endTime: row.endTime ? dayjs(row.endTime).format('YYYY-MM-DD HH:mm:ss') : '',
     remark: row.remark || '',
     coverImage: row.coverImage || '',
   }
+  textbookOptions.value = row.bookName
+    ? [{ id: row.textbookId, title: row.bookName, author: row.author, isbn: row.isbn }]
+    : []
 }
 
 const handleUpload = async (file: File) => {
@@ -72,7 +155,7 @@ const handleUpload = async (file: File) => {
 
 const submitForm = async () => {
   if (!form.value.textbookId || !form.value.price || !form.value.startTime) {
-    ElMessage.warning('教材ID、预售价、开始时间必填')
+    ElMessage.warning('教材名称、预售价、开始时间必填')
     return
   }
   formLoading.value = true
@@ -124,7 +207,34 @@ const statusMap: Record<number, { label: string; type: string }> = {
     <template v-else>
     <div class="page-header">
       <h2 class="page-title">图书预售</h2>
-      <el-button type="primary" @click="openCreate">新建预售</el-button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:4px">
+          <el-button :loading="templateDownloadLoading" @click="handleTemplateDownload">下载导入模板</el-button>
+          <el-tooltip placement="bottom" effect="dark">
+            <template #content>
+              <div style="max-width:360px;line-height:1.7">
+                <div>每一行表示一条“教材 + 课程”绑定信息。</div>
+                <div>推荐直接使用下载的模板：保留第一行表头，删除或覆盖第二行示例数据，再向下填写。</div>
+                <div>也可以自己新建 Excel，但第一行必须使用与模板完全一致的表头，真实数据从第二行开始。</div>
+                <div>表头中带 * 的字段为必填：书名、专业、课程名称、年级（1-4）、学期（1=上学期，2=下学期）。</div>
+                <div>“专业”请填写当前学校后台已有的专业名称，必须完全一致，否则该行会导入失败。</div>
+              </div>
+            </template>
+            <el-icon :size="17" color="#909399" style="cursor:help">
+              <QuestionFilled />
+            </el-icon>
+          </el-tooltip>
+        </div>
+        <el-upload
+          :show-file-list="false"
+          :before-upload="handleTextbookImport"
+          :disabled="textbookImportLoading"
+          accept=".xlsx,.xls"
+        >
+          <el-button type="primary" plain :loading="textbookImportLoading">批量导入教材</el-button>
+        </el-upload>
+        <el-button type="primary" @click="openCreate">新建预售</el-button>
+      </div>
     </div>
 
     <el-card shadow="never" style="margin-bottom:16px">
@@ -144,7 +254,7 @@ const statusMap: Record<number, { label: string; type: string }> = {
     <el-card shadow="never">
       <el-table v-loading="loading" :data="list" stripe style="width:100%">
         <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column prop="textbookId" label="教材ID" width="100" />
+        <el-table-column prop="bookName" label="教材名称" min-width="160" show-overflow-tooltip />
         <el-table-column prop="price" label="预售价" width="100">
           <template #default="{ row }">¥{{ row.price }}</template>
         </el-table-column>
@@ -180,8 +290,34 @@ const statusMap: Record<number, { label: string; type: string }> = {
 
     <el-dialog v-model="dialog.visible" :title="dialog.id ? '编辑预售' : '新建预售'" width="480px">
       <el-form label-width="90px">
-        <el-form-item label="教材ID">
-          <el-input v-model="form.textbookId" placeholder="请输入教材ID" :disabled="!!dialog.id" />
+        <el-form-item label="教材名称">
+          <el-select
+            v-model="form.textbookId"
+            filterable
+            remote
+            clearable
+            reserve-keyword
+            :remote-method="handleTextbookSearch"
+            :loading="textbookSearchLoading"
+            :disabled="!!dialog.id"
+            placeholder="请输入教材名称搜索"
+            no-match-text="未找到匹配教材"
+            style="width:100%"
+          >
+            <el-option
+              v-for="item in textbookOptions"
+              :key="item.id"
+              :label="item.title"
+              :value="item.id"
+            >
+              <div style="display:flex;justify-content:space-between;gap:16px">
+                <span>{{ item.title }}</span>
+                <span style="color:#909399;font-size:12px">
+                  {{ item.author || item.isbn || `ID: ${item.id}` }}
+                </span>
+              </div>
+            </el-option>
+          </el-select>
         </el-form-item>
         <el-form-item label="预售价(元)">
           <el-input v-model="form.price" placeholder="如：59.00" />
@@ -190,10 +326,10 @@ const statusMap: Record<number, { label: string; type: string }> = {
           <el-input-number v-model="form.stock" :min="0" placeholder="0表示不限" style="width:100%" />
         </el-form-item>
         <el-form-item label="开始时间">
-          <el-date-picker v-model="form.startTime" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" style="width:100%" />
+          <el-date-picker v-model="form.startTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" style="width:100%" />
         </el-form-item>
         <el-form-item label="结束时间">
-          <el-date-picker v-model="form.endTime" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" style="width:100%" placeholder="不填则手动结束" />
+          <el-date-picker v-model="form.endTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" style="width:100%" placeholder="不填则手动结束" />
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.remark" type="textarea" :rows="2" />

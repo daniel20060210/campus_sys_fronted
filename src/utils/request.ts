@@ -11,6 +11,7 @@ instance.interceptors.request.use((config) => {
 
 instance.interceptors.response.use(
   (res) => {
+    if (res.config.responseType === 'blob') return res
     const data: ApiResponse = res.data
     if (data.code !== 200 && data.code !== 0) {
       const msg = data.code === 1502 ? '此功能仅限校级管理员操作，超级管理员请切换至对应学校账号'
@@ -49,4 +50,7 @@ export const del = <T = any>(url: string, config?: RequestConfig): Promise<ApiRe
 export const patch = <T = any>(url: string, data?: any, config?: RequestConfig): Promise<ApiResponse<T>> =>
   instance.patch(url, data, config).then((r) => r.data)
 
-export default { get, post, put, delete: del, patch }
+export const download = (url: string, config?: RequestConfig) =>
+  instance.get<Blob>(url, { ...config, responseType: 'blob' })
+
+export default { get, post, put, delete: del, patch, download }
