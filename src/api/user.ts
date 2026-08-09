@@ -104,6 +104,7 @@ export interface SchoolChangeRequest {
   targetMajorName: string
   studentCardUrl: string
   idCardUrl: string
+  reason?: string
   status: 0 | 1 | 2
   statusDesc: string
   appealYear: number

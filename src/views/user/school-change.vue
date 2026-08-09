@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getSchoolChangeList, approveSchoolChange, rejectSchoolChange } from '@/api'
 import type { SchoolChangeRequest } from '@/api/user'
@@ -19,7 +19,7 @@ const total = ref(0)
 const pageNum = ref(1)
 const pageSize = ref(20)
 
-const searchStatus = ref<number | undefined>(undefined)
+const searchStatus = ref<0 | 1 | 2 | undefined>(undefined)
 
 const fetchData = async () => {
   loading.value = true
@@ -72,7 +72,11 @@ const openPreview = (row: SchoolChangeRequest) => {
 }
 
 // 通过
+const approvingId = ref<number | null>(null)
+
 const handleApprove = async (row: SchoolChangeRequest) => {
+  if (approvingId.value !== null) return
+  approvingId.value = row.appealId
   try {
     await ElMessageBox.confirm(
       `确认通过「${row.userNickname}」的学校/专业修改申请吗？`,
@@ -81,9 +85,13 @@ const handleApprove = async (row: SchoolChangeRequest) => {
     )
     await approveSchoolChange(row.appealId)
     ElMessage.success('已通过申请')
-    fetchData()
-  } catch {
-    // 取消或失败
+    await fetchData()
+  } catch (error: any) {
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error(error?.message || '通过申请失败')
+    }
+  } finally {
+    approvingId.value = null
   }
 }
 
@@ -94,12 +102,14 @@ const rejectReason = ref('')
 const rejectLoading = ref(false)
 
 const openRejectDialog = (row: SchoolChangeRequest) => {
+  if (approvingId.value !== null || rejectLoading.value) return
   rejectingRow.value = row
   rejectReason.value = ''
   rejectDialogVisible.value = true
 }
 
 const submitReject = async () => {
+  if (rejectLoading.value) return
   if (!rejectReason.value.trim()) {
     ElMessage.warning('请填写拒绝原因')
     return
@@ -175,6 +185,7 @@ fetchData()
             <el-button link type="primary" size="small" @click="openPreview(row)">查看证件</el-button>
           </template>
         </el-table-column>
+        <el-table-column prop="reason" label="申诉原因" min-width="180" show-overflow-tooltip />
         <el-table-column label="申请时间" width="150">
           <template #default="{ row }">{{ formatTime(row.createdAt) }}</template>
         </el-table-column>
@@ -194,8 +205,21 @@ fetchData()
         <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
             <template v-if="row.status === 0">
-              <el-button link type="success" size="small" @click="handleApprove(row)">通过</el-button>
-              <el-button link type="danger" size="small" @click="openRejectDialog(row)">拒绝</el-button>
+              <el-button
+                link
+                type="success"
+                size="small"
+                :loading="approvingId === row.appealId"
+                :disabled="approvingId !== null && approvingId !== row.appealId"
+                @click="handleApprove(row)"
+              >通过</el-button>
+              <el-button
+                link
+                type="danger"
+                size="small"
+                :disabled="approvingId !== null"
+                @click="openRejectDialog(row)"
+              >拒绝</el-button>
             </template>
             <span v-else class="text-secondary text-sm">
               审核人: {{ row.reviewerName || '-' }}
@@ -221,6 +245,10 @@ fetchData()
     <!-- 证件预览弹窗 -->
     <el-dialog v-model="previewVisible" title="证件材料" width="520px" :close-on-click-modal="false">
       <div v-if="previewRow" class="cert-preview">
+        <div class="appeal-reason">
+          <div class="cert-label">申诉原因</div>
+          <div class="reason-content">{{ previewRow.reason || '-' }}</div>
+        </div>
         <div class="cert-item">
           <div class="cert-label">学生证照片</div>
           <el-image
@@ -245,8 +273,17 @@ fetchData()
       <template #footer>
         <el-button @click="previewVisible = false">关闭</el-button>
         <template v-if="previewRow?.status === 0">
-          <el-button type="danger" @click="previewVisible = false; openRejectDialog(previewRow)">拒绝</el-button>
-          <el-button type="success" @click="previewVisible = false; handleApprove(previewRow)">通过</el-button>
+          <el-button
+            type="danger"
+            :disabled="approvingId !== null"
+            @click="previewVisible = false; openRejectDialog(previewRow)"
+          >拒绝</el-button>
+          <el-button
+            type="success"
+            :loading="approvingId === previewRow.appealId"
+            :disabled="approvingId !== null && approvingId !== previewRow.appealId"
+            @click="previewVisible = false; handleApprove(previewRow)"
+          >通过</el-button>
         </template>
       </template>
     </el-dialog>
@@ -287,6 +324,22 @@ fetchData()
 .text-danger { color: #f56c6c; font-size: 12px; }
 .text-sm { font-size: 12px; }
 .reject-user-info { margin-bottom: 16px; color: var(--el-text-color-regular); }
+.appeal-reason {
+  .cert-label {
+    font-size: 13px;
+    color: var(--el-text-color-regular);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .reason-content {
+    padding: 10px 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: var(--el-fill-color-light);
+    border-radius: 6px;
+  }
+}
 .cert-preview {
   display: flex;
   flex-direction: column;
