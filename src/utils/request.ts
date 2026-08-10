@@ -1,7 +1,8 @@
 import axios from 'axios'
 import type { ApiResponse } from '@/types'
+import { API_BASE_URL } from '@/utils/backend-url'
 
-const instance = axios.create({ baseURL: '/api/v1' })
+const instance = axios.create({ baseURL: API_BASE_URL })
 
 instance.interceptors.request.use((config) => {
   const token = localStorage.getItem('admin_token')

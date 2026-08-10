@@ -85,12 +85,18 @@ cp .env.example .env
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `CB_BACKEND_URL` | 后端 API 地址 | `https://api.staging.biteofcampus.com` |
+| `VITE_BACKEND_PREFIX` | API、图片和下载资源共用的后端前缀；支持 HTTPS 地址或 `/backend` 这类同源路径 | 空（本地走 Vite 代理） |
 | `CB_MANAGE_LOCAL_PORT` | 本地开发端口 | `36664` |
 
 ### 代理配置
 
-开发服务器会将 `/api` 前缀的请求代理到 `http://localhost:5659`，如需修改可在 `vite.config.ts` 中调整 `server.proxy` 配置。
+开发服务器会将 `/api` 和 `/images` 前缀的请求代理到 `http://localhost:5659`。线上环境只需在构建前设置一次统一前缀，例如：
+
+```bash
+VITE_BACKEND_PREFIX=https://api.example.com pnpm build
+```
+
+也可以通过网关把后端统一挂在管理端域名的 `/backend` 下，然后设置 `VITE_BACKEND_PREFIX=/backend`，避免跨域。接口请求、学校申诉图片及其他通过 `resolveBackendUrl()` 处理的后端资源会一起切换，无需分别修改地址。
 
 ## 目录结构
 
@@ -163,7 +169,7 @@ CampusX-fronted/
 ### API 请求
 
 - 所有 API 函数在 `src/api/` 下按模块分文件，统一从 `src/api/index.ts` 导出
-- 接口路径不含 `/api/v1` 前缀，由 `request.ts` 统一添加
+- 接口路径不含 `/api/v1` 前缀，由 `backend-url.ts` 和 `request.ts` 统一添加
 - 请求工具提供 `get / post / put / del` 四个方法
 
 ### 学校筛选

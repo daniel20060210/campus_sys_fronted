@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getSchoolChangeList, approveSchoolChange, rejectSchoolChange } from '@/api'
 import type { SchoolChangeRequest } from '@/api/user'
+import { resolveBackendUrl } from '@/utils/backend-url'
 import dayjs from 'dayjs'
 
 const formatTime = (t?: string) => (t ? dayjs(t).format('YYYY-MM-DD HH:mm') : '-')
@@ -252,20 +253,20 @@ fetchData()
         <div class="cert-item">
           <div class="cert-label">学生证照片</div>
           <el-image
-            :src="previewRow.studentCardUrl"
+            :src="resolveBackendUrl(previewRow.studentCardUrl)"
             fit="contain"
             class="cert-img"
-            :preview-src-list="[previewRow.studentCardUrl]"
+            :preview-src-list="[resolveBackendUrl(previewRow.studentCardUrl)]"
             preview-teleported
           />
         </div>
         <div class="cert-item">
           <div class="cert-label">身份证照片</div>
           <el-image
-            :src="previewRow.idCardUrl"
+            :src="resolveBackendUrl(previewRow.idCardUrl)"
             fit="contain"
             class="cert-img"
-            :preview-src-list="[previewRow.idCardUrl]"
+            :preview-src-list="[resolveBackendUrl(previewRow.idCardUrl)]"
             preview-teleported
           />
         </div>

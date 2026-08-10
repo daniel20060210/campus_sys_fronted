@@ -10,10 +10,8 @@
 
 - 有效的环境变量 `.env` 文件
   - `CB_MANAGE_LOCAL_PORT` 为映射到本机供测试的端口
-  - `CB_BACKEND_URL` 为后端域名/主机名，如 `https://api.staging.biteofcampus.com`
-    > 有关该变量：如果管理前端运行在 Windows 的 Docker 容器中，应使用 `host.docker.internal` 代替 `localhost` 和 `127.0.0.1`。
-    >
-    > 例如，不应使用 `http://localhost:21346` 或 `http://127.0.0.1:21346`，而应使用 `http://host.docker.internal:21346`。
+  - `VITE_BACKEND_PREFIX` 为 API、图片和下载资源共用的后端前缀，如 `https://api.staging.biteofcampus.com` 或 `/backend`。该变量在前端构建时写入产物。
+    > 完整地址最终由用户浏览器访问，不能填写仅容器内部可解析的 `host.docker.internal`。生产环境推荐使用浏览器可访问的 HTTPS 地址，或由网关转发的同源路径前缀。
 
 ### 执行命令
 
