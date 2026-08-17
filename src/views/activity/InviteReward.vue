@@ -21,6 +21,7 @@ import {
 
 const loading = ref(false)
 const activity = ref<InviteRewardActivity | null>(null)
+const selectedActivityId = ref<number | null>(null)
 const activities = ref<InviteRewardActivity[]>([])
 const tiers = ref<RewardTier[]>([])
 const inviteeRecords = ref<InviteeRecord[]>([])
@@ -33,12 +34,17 @@ const fetchActivities = async () => {
   try {
     const res = await getInviteRewardActivities()
     activities.value = res.data.list || []
-    if (activities.value.length > 0 && !activity.value) {
-      activity.value = activities.value.find((a) => a.status === 0) || activities.value[0]
+    if (activities.value.length > 0) {
+      const nextActivity = activities.value.find((a) => a.id === selectedActivityId.value)
+        || activities.value.find((a) => a.status === 0)
+        || activities.value[0]!
+      activity.value = nextActivity
+      selectedActivityId.value = nextActivity.id
       fetchTiers()
       fetchInviteeRecords()
     } else if (activities.value.length === 0) {
       activity.value = null
+      selectedActivityId.value = null
     }
   } finally {
     loading.value = false
@@ -62,6 +68,7 @@ const fetchInviteeRecords = async () => {
 
 const handleActivityChange = (id: number) => {
   activity.value = activities.value.find((a) => a.id === id) || null
+  inviteePage.value.pageNum = 1
   fetchTiers()
   fetchInviteeRecords()
 }
@@ -293,9 +300,10 @@ const sourceText = (s: number) => ({ 1: '付费发帖', 2: '交易达标', 3: '�
 
     <el-card v-if="activities.length > 0" v-loading="loading" class="activity-selector">
       <el-select
-        v-model="activity!.id"
+        v-model="selectedActivityId"
         :disabled="!activity"
-        placeholder="选择活动"
+        filterable
+        placeholder="选择或搜索活动"
         style="width: 300px"
         @change="handleActivityChange"
       >
