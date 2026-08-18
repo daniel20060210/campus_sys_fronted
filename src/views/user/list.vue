@@ -228,7 +228,7 @@ fetchData(searchParams.value)
         </el-table-column>
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" size="small">
+            <el-button link type="primary" size="small" @click="router.push({ path: `/user/detail/${row.id}` })">
               查看详情
             </el-button>
             <el-button

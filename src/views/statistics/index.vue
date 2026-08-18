@@ -25,9 +25,6 @@ const dateRange = ref<[Date, Date] | null>([
 ])
 const granularity = ref<StatisticsGranularity>('day')
 
-const userInfo = JSON.parse(localStorage.getItem('admin_user') || '{}')
-const isSuperAdmin = computed(() => Number(userInfo?.userType) === 1)
-
 function createEmptyStatistics(): StatisticsDashboard {
   return {
     userCount: 0,
@@ -194,7 +191,7 @@ async function fetchStatistics() {
       params.endTime = dayjs(dateRange.value[1]).endOf('day').valueOf()
     }
 
-    if (isSuperAdmin.value && schoolFilterStore.selectedSchoolIds.length > 0) {
+    if (schoolFilterStore.selectedSchoolIds.length > 0) {
       params.schoolIds = schoolFilterStore.selectedSchoolIds
     }
 

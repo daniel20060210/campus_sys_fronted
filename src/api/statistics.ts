@@ -38,15 +38,13 @@ export async function getStatistics(params: StatisticsDashboardParams = {}) {
   ])
 
   let txRes: any = null
-  if (params.schoolIds?.length) {
-    try {
-      txRes = await post<any>('/payment/statistics/query', {
-        campusIds: params.schoolIds,
-        startDate: startDate || dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
-        endDate: endDate || dayjs().format('YYYY-MM-DD'),
-      })
-    } catch {}
-  }
+  try {
+    txRes = await post<any>('/payment/statistics/query', {
+      campusIds: params.schoolIds ?? [],
+      startDate: startDate || dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
+      endDate: endDate || dayjs().format('YYYY-MM-DD'),
+    })
+  } catch {}
 
   const summary = summaryRes.status === 'fulfilled' ? summaryRes.value.data : {}
   const userStats = userStatsRes.status === 'fulfilled' ? userStatsRes.value.data : {}

@@ -67,6 +67,12 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/user/department-major.vue'),
             meta: { title: '院系专业管理' },
           },
+          {
+            path: '/user/detail/:id',
+            name: 'UserDetail',
+            component: () => import('@/views/user/detail.vue'),
+            meta: { title: '用户详情' },
+          },
         ],
       },
       {
